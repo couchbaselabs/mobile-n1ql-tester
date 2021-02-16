@@ -279,7 +279,6 @@ namespace N1QLQueryHarness.Commands
                 C4QueryOptions opts = new();
                 c4query = CreateQuery(db, queryStatements);
                 if (c4query == null) {
-                    _result.ErrorCount++;
                     return;
                 }
 
@@ -329,6 +328,8 @@ namespace N1QLQueryHarness.Commands
                 ColorConsole.ForceWriteLine($"\t...{_lc!.c4error_getDescription(err)}");
                 _result.ErrorResults.Add(new ErrorResult
                     {Query = statements, Message = _lc!.c4error_getDescription(err)});
+                _result.ErrorCount++;
+                _result.Total++;
                 if (errorPos >= 0) {
                     Console.WriteLine();
                     var start = errorPos - startOffset;
