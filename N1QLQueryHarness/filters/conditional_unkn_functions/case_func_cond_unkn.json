@@ -1,0 +1,11 @@
+[
+    "SELECT COALESCE(NULL, `lastName`, `firstName`) as firstNonNull FROM customer WHERE test_id=\"cond_unkn_func\" ORDER BY id DESC",
+    "SELECT NVL(`lastName`, \"not applicable\") as LastName FROM customer WHERE test_id=\"cond_unkn_func\" ORDER BY id",
+    "SELECT NVL(`firstName`, \"not applicable\") as FirstName FROM customer WHERE test_id=\"cond_unkn_func\" ",
+    "SELECT NVL2(`lastName`, `lastName`, `firstName`) as Name FROM customer WHERE test_id=\"cond_unkn_func\" ORDER BY id DESC",
+    "SELECT Decode(`custId`, \"customer38\", \"newCustomer\", \"customer12\", \"VIP\", MISSING) FROM orders WHERE test_id=\"cond_unkn_func\" ORDER BY custId",
+    "SELECT Decode(`custId`, \"customer38\", \"newCustomer\", \"customer12\", \"VIP\", \"normal customer\") FROM orders WHERE test_id=\"cond_unkn_func\" ORDER BY custId",
+    "SELECT Decode(firstName, null, \"not available\", missing, \"not given\") FROM customer WHERE test_id = \"cond_unkn_func\" ORDER BY id",
+    "SELECT Decode(firstName, missing, \"not available\") FROM customer WHERE test_id = \"cond_unkn_func\" ORDER BY id",
+    "SELECT Decode(orderlines, [{\"productId\": \"coffee01\",\"qty\": 1},{ \"productId\": \"sugar22\",\"qty\": 1}], []) FROM orders WHERE test_id=\"cond_unkn_func\" ORDER BY id"
+]

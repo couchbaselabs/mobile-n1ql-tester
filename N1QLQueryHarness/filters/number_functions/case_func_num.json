@@ -1,0 +1,8 @@
+[
+    "select random(0.5) ",
+    "select sign(NaN()) ",
+    "select sign(PosInf()) ",
+    "select sign(NegInf()) ",
+    "select round_even(1.5),round_even(1.5,0),round_nearest(1.5,0),round_nearest(1.5),round_even(2.5),round_even(2.5,0),round_nearest(2.5,0),round_nearest(2.5)",
+    "select round(1.5),round(1.5,0),round_even(1.5,0),round_even(1.5),round(2.5),round(2.5,0),round_even(2.5,0),round_even(2.5)"
+]

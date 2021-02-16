@@ -1,0 +1,6 @@
+[
+    "SELECT BASE64(customer) AS b64 FROM customer WHERE test_id=\"meta_func\" ORDER BY b64 limit 3",
+    "select BASE64_DECODE(BASE64_ENCODE({'a': 1, 'b': 2 }))",
+    "select DECODE_BASE64(ENCODE_BASE64({'a': 1, 'b': 2 }))",
+    "select ISSTRING(DS_VERSION()) as hasversion"
+]

@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "N1QLQueryHarness": {
+      "commandName": "Project",
+      "commandLineArgs": "run -o -j out.json",
+      "nativeDebugging": true
+    }
+  }
+}

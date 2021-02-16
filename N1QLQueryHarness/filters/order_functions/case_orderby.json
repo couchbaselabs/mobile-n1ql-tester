@@ -1,0 +1,3 @@
+[
+    "SELECT id, orderlines[0].*, (orderlines[0].qty + orderlines[1].qty) AS totquant FROM orders WHERE test_id=\"order_func\" ORDER BY totquant, id DESC"
+]

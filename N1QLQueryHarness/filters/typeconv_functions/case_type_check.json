@@ -1,0 +1,4 @@
+[
+    "SELECT TYPE(ARRAY productId FOR productId IN orderlines END) AS all_products FROM orders WHERE test_id=\"typeconv_func\" ORDER BY all_products ",
+    "select (ARRAY TYPE(c) for c in [ 1, \"yes\", true,[1,2], missing, null] END)  as ok "
+]

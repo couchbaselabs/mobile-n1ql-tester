@@ -1,0 +1,3 @@
+[
+    "SELECT month, COUNT(*) as order_count FROM product AS p WHERE test_id = \"agg_func\" GROUP BY DATE_PART_STR(dateAdded, \"month\") as month having month > 11"
+]

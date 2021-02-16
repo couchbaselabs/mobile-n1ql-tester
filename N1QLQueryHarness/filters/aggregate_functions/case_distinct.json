@@ -1,0 +1,6 @@
+[
+    "SELECT COUNT(DISTINCT color) AS numcolors, product.categories AS category FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY numcolors, product.categories DESC LIMIT 3",
+    "SELECT ARRAY_AGG(DISTINCT color) AS coloroptions,product.categories FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY product.categories, coloroptions LIMIT 2",
+    "SELECT COUNT(DISTINCT color) AS totcolors, COUNT(product.categories) AS totcategories FROM product WHERE test_id = \"agg_func\"",
+    "SELECT COUNTN(cntn) AS cntn, COUNTN(DISTINCT cntn) AS dcntn, COUNT(cntn) AS cnt, COUNT(DISTINCT cntn) AS dcnt FROM orders WHERE test_id = \"cntn_agg_func\""
+]

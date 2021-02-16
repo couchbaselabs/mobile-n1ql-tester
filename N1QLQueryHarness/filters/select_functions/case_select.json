@@ -1,0 +1,7 @@
+[
+    "SELECT orderlines[0].* FROM orders WHERE test_id=\"select_func\" ORDER BY orderlines[0].productId, orderlines[0].qty",
+    "SELECT orderlines[0].*, orderlines[1].* FROM orders WHERE test_id=\"select_func\" ORDER BY orderlines[0].productId, orderlines[1].productId",
+    "SELECT orderlines[0].*, id, orderlines[1].* FROM orders WHERE test_id=\"select_func\" ORDER BY orderlines[0].productId, id",
+    "SELECT orderlines[0].productId.* FROM orders WHERE test_id=\"select_func\" ORDER BY orderlines[0].productId",
+    "SELECT custId, orderlines[1].* FROM orders WHERE test_id=\"select_func\" ORDER BY custId"
+]
