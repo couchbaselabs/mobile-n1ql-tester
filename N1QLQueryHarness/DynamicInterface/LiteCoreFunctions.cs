@@ -36,7 +36,7 @@ namespace N1QLQueryHarness.DynamicInterface
         Create = 0x01,
         ReadOnly = 0x02,
         AutoCompact = 0x04,
-        SharedKeys = 0x10,
+        VersionVectors = 0x08,
         NoUpgrade = 0x20,
         NonObservable = 0x40
     }
