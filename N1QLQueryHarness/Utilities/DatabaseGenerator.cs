@@ -231,6 +231,7 @@ namespace N1QLQueryHarness.Utilities
 
                 var dbName = dbNameMatch[1].Value;
                 if (!dbMap.ContainsKey(dbName)) {
+                    Database.Delete(dbName, outputDirectory);
                     var dbToInsert = new Database(dbName, dbConfig);
                     var dbRelativePath = Path.GetRelativePath(parent.OutputDirectory!, dbToInsert.Path!);
                     ColorConsole.WriteLine($"   ...Created database {dbRelativePath}", LogLevel.Verbose,
