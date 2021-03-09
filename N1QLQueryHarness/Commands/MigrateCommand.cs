@@ -105,8 +105,8 @@ namespace N1QLQueryHarness.Commands
                 Directory = OutputDirectory
             };
 
-            using var db = new Database("scratch", dbConfig);
-            if (db.Count == 0) {
+            if (!Database.Exists("scratch", OutputDirectory!)) {
+                using var db = new Database("scratch", dbConfig);
                 using var doc = new MutableDocument();
                 doc.SetString("foo", "bar");
                 db.Save(doc);
