@@ -1,0 +1,5 @@
+[
+    "SELECT 1/0 AS result",
+    "SELECT -1/0 AS result",
+    "SELECT 0/0 AS result"
+]

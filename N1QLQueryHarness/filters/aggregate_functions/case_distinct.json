@@ -2,5 +2,8 @@
     "SELECT COUNT(DISTINCT color) AS numcolors, product.categories AS category FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY numcolors, product.categories DESC LIMIT 3",
     "SELECT ARRAY_AGG(DISTINCT color) AS coloroptions,product.categories FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY product.categories, coloroptions LIMIT 2",
     "SELECT COUNT(DISTINCT color) AS totcolors, COUNT(product.categories) AS totcategories FROM product WHERE test_id = \"agg_func\"",
-    "SELECT COUNTN(cntn) AS cntn, COUNTN(DISTINCT cntn) AS dcntn, COUNT(cntn) AS cnt, COUNT(DISTINCT cntn) AS dcnt FROM orders WHERE test_id = \"cntn_agg_func\""
+    "SELECT COUNTN(cntn) AS cntn, COUNTN(DISTINCT cntn) AS dcntn, COUNT(cntn) AS cnt, COUNT(DISTINCT cntn) AS dcnt FROM orders WHERE test_id = \"cntn_agg_func\"",
+    "SELECT categories, ROUND(SUM(unitPrice), 2) AS totprice FROM product WHERE test_id = \"agg_func\" AND ANY reviewList IN reviewList SATISFIES reviewList LIKE \"%0\" END GROUP BY categories HAVING ROUND(SUM(unitPrice), 2) ORDER BY categories LIMIT 5",
+    "SELECT product.categories AS CATG, COUNT (*) AS numprods FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY CATG,numprods LIMIT 3",
+    "SELECT product.categories AS CATG, COUNT (*) AS numprods FROM product WHERE test_id = \"agg_func\" GROUP BY product.categories ORDER BY numprods,CATG LIMIT 3"
 ]

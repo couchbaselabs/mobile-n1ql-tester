@@ -22,11 +22,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using N1QLQueryHarness.Commands;
+using N1QLQueryHarness.Utilities.Converters;
 
 namespace N1QLQueryHarness.Utilities
 {
@@ -51,6 +53,12 @@ namespace N1QLQueryHarness.Utilities
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             WriteIndented = true
+        };
+
+        private static readonly IStatementConverter[] Converters =
+        {
+            new IsStatementConverter(),
+            new ToStatementConverter()
         };
 
         #endregion
@@ -97,6 +105,14 @@ namespace N1QLQueryHarness.Utilities
                 if (excludeData.Contains(entry.Statements) || entry.Statements == null || entry.Results == null) {
                     used--;
                     inputData.RemoveAt(i);
+                } else {
+                    foreach (var c in Converters) {
+                        if (c.ShouldConvert(entry.Statements)) {
+                            var before = entry.Statements;
+                            entry.Statements = c.Convert(entry.Statements);
+                            ColorConsole.WriteLine($"Converted {before} to {entry.Statements}...");
+                        }
+                    }
                 }
             }
 
