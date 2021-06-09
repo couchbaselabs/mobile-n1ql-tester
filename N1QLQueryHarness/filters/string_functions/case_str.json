@@ -23,5 +23,6 @@
     "SELECT RTRIM(firstName, \"e\") as righttrim FROM customer where test_id=\"str_func\" ORDER BY righttrim LIMIT 5",
     "select regexp_position1('tablet', 'ab?')",
     "select like_prefix(\"abc%123\"),like_suffix(\"___123\"),like_stop(\"abc\\u0000\"),like_stop(\"abc%\")",
-    "select regexp_prefix(\"abc.*123\"),regexp_suffix(\"...123\"),regexp_stop(\"abc\\u0000\"),regexp_stop(\"abc.*\")"
+    "select regexp_prefix(\"abc.*123\"),regexp_suffix(\"...123\"),regexp_stop(\"abc\\u0000\"),regexp_stop(\"abc.*\")",
+    "SELECT REPLACE('SQL SQL SQL', 'S', 'N1', -1) as negative_n, REPLACE('SQL SQL SQL', 'S', 'N1', 2) as replace_2, REPLACE('SQL SQL SQL', 'S', 'N1') as replace_all"
 ]

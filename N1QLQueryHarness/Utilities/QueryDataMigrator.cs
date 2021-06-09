@@ -58,7 +58,9 @@ namespace N1QLQueryHarness.Utilities
         private static readonly IStatementConverter[] Converters =
         {
             new IsStatementConverter(),
-            new ToStatementConverter()
+            new ToStatementConverter(),
+            new TrigDivideConverter(),
+            new RoundConverter()
         };
 
         #endregion

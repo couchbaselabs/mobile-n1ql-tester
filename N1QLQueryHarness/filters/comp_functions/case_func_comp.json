@@ -1,5 +1,5 @@
 [
     "select eq(1,1),eq(1,2),lt(1,2),lt(2,1),le(2,2),le(1,2),le(3,2)",
     "select is_missing(t.a) ma,is_missing(t.b) mb,is_not_missing(t.a) nma,is_not_missing(t.b) nmb,is_null(t.a) must_not_exist,is_null(t.b) nb,is_null(t.c) nc,is_not_null(t.a) must_not_exist_too,is_not_null(t.b) nnb,is_not_null(t.c) nnc,is_known(t.a) ka,is_known(t.b) kb,is_known(t.c) kc,is_not_known(t.a) nka,is_not_known(t.b) nkb,is_not_known(t.c) nkc from ([{\"b\":\"abc123\",\"c\":null}]) t",
-    "elect `between`(10,5,15),`between`(10,15,25)"
+    "select `between`(10,5,15),`between`(10,15,25)"
 ]
