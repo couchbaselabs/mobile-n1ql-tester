@@ -24,5 +24,8 @@
     "select regexp_position1('tablet', 'ab?')",
     "select like_prefix(\"abc%123\"),like_suffix(\"___123\"),like_stop(\"abc\\u0000\"),like_stop(\"abc%\")",
     "select regexp_prefix(\"abc.*123\"),regexp_suffix(\"...123\"),regexp_stop(\"abc\\u0000\"),regexp_stop(\"abc.*\")",
-    "SELECT REPLACE('SQL SQL SQL', 'S', 'N1', -1) as negative_n, REPLACE('SQL SQL SQL', 'S', 'N1', 2) as replace_2, REPLACE('SQL SQL SQL', 'S', 'N1') as replace_all"
+    "SELECT REPLACE('SQL SQL SQL', 'S', 'N1', -1) as negative_n, REPLACE('SQL SQL SQL', 'S', 'N1', 2) as replace_2, REPLACE('SQL SQL SQL', 'S', 'N1') as replace_all",
+    "select lpad('<-',15,'- pad str'),rpad('->',15,'- pad str')",
+    "select lpad('default',15),rpad('default',15)",
+    "select lpad('truncated',5),rpad('truncated',5)"
 ]

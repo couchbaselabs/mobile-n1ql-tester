@@ -75,5 +75,8 @@
     "select MILLIS_TO_STR(1.453485008e+12,\"2006-01-02\")",
     " select MILLIS(\"2015-01-01T16:00:00-08:00\")",
     "select MILLIS_TO_UTC(1.4201568e+12,\"2006-01-02 15:04:05\")",
-    "SELECT DATE_ADD_MILLIS(1463284740000, 3, 'day') as add_3_days,DATE_ADD_MILLIS(1463284740000, 3, 'year') as add_3_years,DATE_ADD_MILLIS(1463284740000, -3, 'day') as sub_3_days,DATE_ADD_MILLIS(1463284740000, -3, 'year') as sub_3_years"
+    "SELECT DATE_ADD_MILLIS(1463284740000, 3, 'day') as add_3_days,DATE_ADD_MILLIS(1463284740000, 3, 'year') as add_3_years,DATE_ADD_MILLIS(1463284740000, -3, 'day') as sub_3_days,DATE_ADD_MILLIS(1463284740000, -3, 'year') as sub_3_years",
+    "select DATE_TRUNC_STR(\"2021-05-13\",\"week\")",
+    "select DATE_TRUNC_STR(\"2021-05-13\",\"iso_week\")",
+    "select str_to_millis('2016-12-03T08:00:00Z'), str_to_millis('2015-12-03T08:00:00Z'), str_to_millis('19/08/2011 6:33:23+0000','02/01/2006 15:04:05Z0700')"
 ]
