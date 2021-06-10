@@ -1,5 +1,6 @@
 [
     "SELECT id FROM orders WHERE ANY product IN ARRAY ol.productId FOR ol IN orderlines END SATISFIES product == \"tea111\" END AND test_id=\"where_func\" ORDER BY id",
     "SELECT id FROM orders WHERE EVERY product IN ARRAY ol.productId FOR ol IN orderlines END SATISFIES product <> \"tea111\" END AND test_id=\"where_func\" ORDER BY id",
-    "SELECT id FROM orders WHERE EVERY product IN ARRAY ol.productId FOR ol IN orderlines END SATISFIES product != \"tea111\" END AND test_id=\"where_func\" ORDER BY id"
+    "SELECT id FROM orders WHERE EVERY product IN ARRAY ol.productId FOR ol IN orderlines END SATISFIES product != \"tea111\" END AND test_id=\"where_func\" ORDER BY id",
+    "SELECT customerId, id, orderlines FROM orders WHERE orderlines[0]={\"productId\": \"coffee01\", \"qty\": 2} AND id=\"1234\" AND test_id=\"where_func\""
 ]

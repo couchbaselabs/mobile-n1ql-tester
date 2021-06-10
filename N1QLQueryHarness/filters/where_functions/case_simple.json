@@ -1,0 +1,3 @@
+[
+    "SELECT * FROM product WHERE name = \"SODIAL(TM) Mickey Mouse Face Shape Cookie Cutter\" AND test_id=\"where_func\" ORDER BY 1"
+]
