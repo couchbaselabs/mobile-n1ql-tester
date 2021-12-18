@@ -428,7 +428,7 @@ namespace N1QLQueryHarness.Commands
             using var dbName_ = new PinnedString(dbName);
             var config = new C4DatabaseConfig2
             {
-                flags = C4DatabaseFlags.VersionVectors,
+                flags = 0,
                 parentDirectory = parentDir.AsSlice()
             };
 

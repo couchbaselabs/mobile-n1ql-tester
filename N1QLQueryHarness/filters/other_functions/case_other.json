@@ -1,0 +1,3 @@
+[
+    "select len([1,2,3]), len({\"a\":null,\"b\":1}), len(\"Hello world\"), len(12.34), len(missing), len(null)"
+]
