@@ -34,6 +34,8 @@ using N1QLQueryHarness.DynamicInterface;
 using N1QLQueryHarness.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
+using Spectre.Console;
 
 namespace N1QLQueryHarness.Commands
 {
@@ -321,11 +323,9 @@ namespace N1QLQueryHarness.Commands
             var errorPos = -1;
             var c4query = _lc!.c4query_new2(db, queryStr.AsSlice(), ref errorPos, ref err);
             if (c4query == null) {
-                using var group = ColorConsole.BeginGroup();
-                ColorConsole.ForceWriteLine(
-                    $"Failed to create query for '{statements}'...");
+                Log.Error("Failed to create query for '{0}'...", statements);
                 var startOffset = Math.Min(errorPos, 15);
-                ColorConsole.ForceWriteLine($"\t...{_lc!.c4error_getDescription(err)}");
+                Log.Error("\t...{0}", _lc!.c4error_getDescription(err));
                 _result.ErrorResults.Add(new ErrorResult
                     {Query = statements, Message = _lc!.c4error_getDescription(err)});
                 _result.ErrorCount++;
@@ -333,9 +333,8 @@ namespace N1QLQueryHarness.Commands
                 if (errorPos >= 0) {
                     Console.WriteLine();
                     var start = errorPos - startOffset;
-                    ColorConsole.ForceWriteLine(
-                        $"\t...{statements.Substring(start, Math.Min(30, statements.Length - start))}...");
-                    ColorConsole.ForceWriteLine($"\t{new string(' ', startOffset + 3)}^");
+                    Log.Error("\t...{0}", statements.Substring(start, Math.Min(30, statements.Length - start)));
+                    Log.Error("\t...{0}^", new string(' ', startOffset + 3));
                 }
             }
 
@@ -386,8 +385,10 @@ namespace N1QLQueryHarness.Commands
         // ReSharper disable once UnusedMember.Local
         private unsafe int OnExecute()
         {
+            Program.ConfigureLogging(LogLevel);
             var workingDir = WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-            var lcPath = Path.Combine(workingDir, "lib", LibraryFilename());
+            var librarySubDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "bin" : "lib";
+            var lcPath = Path.Combine(workingDir, "lib", librarySubDir, LibraryFilename());
             try {
                 _lc = new LiteCoreFunctions(lcPath);
                 _lc!.c4log_setCallbackLevel(5);
@@ -406,11 +407,10 @@ namespace N1QLQueryHarness.Commands
                 _scratchDb = null;
             }
 
-            using var g = ColorConsole.BeginGroup();
-            Console.WriteLine();
-            ColorConsole.ForceWrite($"PASS: {_result.PassCount} ", ConsoleColor.Green);
-            ColorConsole.ForceWrite($"FAIL: {_result.FailCount} ", ColorConsole.WarnColor);
-            ColorConsole.ForceWrite($"ERROR: {_result.ErrorCount}");
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[green]PASS: {_result.PassCount} [/]");
+            AnsiConsole.MarkupLine($"[yellow]FAIL: {_result.FailCount} [/]");
+            AnsiConsole.MarkupLine($"[red]ERROR: {_result.ErrorCount} [/]");
             if (JsonReportFilename != null) {
                 using var fout = File.OpenWrite(Path.Combine(workingDir, JsonReportFilename));
                 using var jout = new JsonTextWriter(new StreamWriter(fout, Encoding.UTF8));
@@ -434,8 +434,7 @@ namespace N1QLQueryHarness.Commands
 
             var db = _lc!.c4db_openNamed(dbName_.AsSlice(), &config, ref err);
             if (db == null) {
-                ColorConsole.ForceWriteLine(
-                    $"Unable to open database '{dbName}': ({_lc!.c4error_getDescription(err)})");
+                Log.Fatal("Unable to open database '{0}' in {1}: ({2})", dbName, dbDirectory, _lc!.c4error_getDescription(err));
             }
 
             return db;
@@ -447,7 +446,7 @@ namespace N1QLQueryHarness.Commands
             _result.ErrorCount++;
             _result.Total++;
             _result.ErrorResults.Add(new ErrorResult {Query = query, Message = message});
-            ColorConsole.ForceWriteLine($"[ERROR] {query}: {message}");
+            AnsiConsole.MarkupLine($"[red][[ERROR]] {query.EscapeMarkup()}: {message}[/]");
         }
 
         private void RecordFail(string query, IReadOnlyList<IReadOnlyDictionary<string, object>> expected,
@@ -462,14 +461,11 @@ namespace N1QLQueryHarness.Commands
                 Query = query
             });
 
-            using var g = ColorConsole.BeginGroup();
-            ColorConsole.ForceWriteLine($"[FAIL] {query}", ColorConsole.WarnColor);
-            ColorConsole.ForceWriteLine("Expected:", ColorConsole.WarnColor);
-            ColorConsole.ForceWriteLine(JsonConvert.SerializeObject(expected, Formatting.Indented),
-                ColorConsole.WarnColor);
-            ColorConsole.ForceWriteLine("Actual:", ColorConsole.WarnColor);
-            ColorConsole.ForceWriteLine(JsonConvert.SerializeObject(actual, Formatting.Indented),
-                ColorConsole.WarnColor);
+            AnsiConsole.MarkupLine($"[yellow][[FAIL]] {query.EscapeMarkup()}[/]");
+            AnsiConsole.MarkupLine("[yellow]Expected:[/]");
+            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented)}[/]");
+            AnsiConsole.MarkupLine("[yellow]Actual:[/]");
+            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented)}[/]");
         }
 
         private void RecordPass(string query)
@@ -477,7 +473,7 @@ namespace N1QLQueryHarness.Commands
             _result.PassCount++;
             _result.Total++;
             _result.PassResults.Add(query);
-            ColorConsole.ForceWriteLine($"[PASS] {query}", ConsoleColor.Green);
+            AnsiConsole.MarkupLine("[green][[PASS]] {0}[/]", query.EscapeMarkup());
         }
 
         private bool ResultsAreEqual(IReadOnlyList<IReadOnlyDictionary<string, object>> expected,

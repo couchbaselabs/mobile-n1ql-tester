@@ -22,6 +22,9 @@ using System.Reflection;
 using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
 using N1QLQueryHarness.Commands;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Spectre;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -56,6 +59,14 @@ namespace N1QLQueryHarness
             } 
             
             return await CommandLineApplication.ExecuteAsync<Program>(args);
+        }
+
+        internal static void ConfigureLogging(LogEventLevel level)
+        {
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.WithThreadId()
+                .WriteTo.Spectre("[<{ThreadId}> {Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}", restrictedToMinimumLevel: level)
+                .CreateLogger();
         }
 
         #endregion

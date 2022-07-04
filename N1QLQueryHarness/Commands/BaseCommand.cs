@@ -21,8 +21,7 @@
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
 using McMaster.Extensions.CommandLineUtils;
-using N1QLQueryHarness.Utilities;
-using LogLevel = N1QLQueryHarness.Utilities.LogLevel;
+using Serilog.Events;
 
 namespace N1QLQueryHarness.Commands
 {
@@ -34,7 +33,7 @@ namespace N1QLQueryHarness.Commands
         [Option(Description = "The (optional) directory to log Couchbase Lite logs to")]
         public string? CouchbaseLogDirectory
         {
-            get => Database.Log.File.Config.Directory;
+            get => Database.Log.File.Config?.Directory;
             set
             {
                 if (value != null) {
@@ -47,12 +46,8 @@ namespace N1QLQueryHarness.Commands
             }
         }
 
-        [Option(Description = "Specifies the level of output to write at (normal|detailed|verbose)")]
-        public (bool HasValue, LogLevel Level) Trace
-        {
-            get => (ColorConsole.Level.HasValue, ColorConsole.Level ?? LogLevel.Normal);
-            set => ColorConsole.Level = value.HasValue ? value.Level : null;
-        }
+        [Option(Description = "Specifies the level of output to write at")]
+        public LogEventLevel LogLevel { get; set; } = LogEventLevel.Information;
 
         #endregion
 

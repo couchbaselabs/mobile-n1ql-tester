@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using Couchbase.Lite;
 using McMaster.Extensions.CommandLineUtils;
 using N1QLQueryHarness.Utilities;
+using Serilog;
 
 namespace N1QLQueryHarness.Commands
 {
@@ -73,10 +74,10 @@ namespace N1QLQueryHarness.Commands
         // ReSharper disable once UnusedMember.Local
         private async Task OnExecute()
         {
+            Program.ConfigureLogging(LogLevel);
             var tasks = Directory.EnumerateDirectories(InputDirectory!).Select(ProcessDirectory);
             await Task.WhenAll(tasks);
-            Console.WriteLine();
-            Console.WriteLine($"== Processed {_total} queries, of which {_used} were used ==");
+            Log.Information("== Processed {0} queries, of which {1} were used ==", _total, _used);
         }
 
         private async Task ProcessDirectory(string path)

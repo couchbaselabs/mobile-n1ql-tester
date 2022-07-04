@@ -45,7 +45,9 @@ namespace N1QLQueryHarness.DynamicInterface
         {
             var opened = Native.dlopen(filename, RTLD_LAZY);
             var old = Interlocked.Exchange(ref _library, opened);
-            Native.dlclose(old);
+            if (old != IntPtr.Zero) {
+                Native.dlclose(old);
+            }
         }
         
         public IntPtr Lookup(string name)

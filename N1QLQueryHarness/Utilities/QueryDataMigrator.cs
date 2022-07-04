@@ -29,6 +29,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using N1QLQueryHarness.Commands;
 using N1QLQueryHarness.Utilities.Converters;
+using Serilog;
 
 namespace N1QLQueryHarness.Utilities
 {
@@ -70,7 +71,7 @@ namespace N1QLQueryHarness.Utilities
         public async Task<(int used, int total)> Migrate(MigrateCommand parent, string inputJsonPath, string outputJsonPath, string exclusionPath)
         {
             int used, total;
-            ColorConsole.WriteLine($"Processing {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)}...");
+            Log.Information($"Processing {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)}...");
             IReadOnlyCollection<string>? excludeData;
 
             await using var inputStream = new FileStream(inputJsonPath, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -86,7 +87,7 @@ namespace N1QLQueryHarness.Utilities
                     excludeData = await JsonSerializer.DeserializeAsync<IReadOnlyCollection<string>>(excludeStream)
                         .ConfigureAwait(false);
                 } catch (Exception) {
-                    ColorConsole.ForceWriteLine(exclusionPath);
+                    Log.Error(exclusionPath);
                     throw;
                 }
             } else {
@@ -112,7 +113,7 @@ namespace N1QLQueryHarness.Utilities
                         if (c.ShouldConvert(entry.Statements)) {
                             var before = entry.Statements;
                             entry.Statements = c.Convert(entry.Statements);
-                            ColorConsole.WriteLine($"Converted {before} to {entry.Statements}...");
+                            Log.Information($"Converted {before} to {entry.Statements}...");
                         }
                     }
                 }
@@ -121,7 +122,7 @@ namespace N1QLQueryHarness.Utilities
             await using var outputStream =
                 new FileStream(outputJsonPath, FileMode.Create, FileAccess.Write, FileShare.None);
             await JsonSerializer.SerializeAsync(outputStream, inputData, JsonOptions).ConfigureAwait(false);
-            ColorConsole.WriteLine($"Finished {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)} after processing {inputData.Count} entries!");
+            Log.Information($"Finished {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)} after processing {inputData.Count} entries!");
             return (used, total);
         }
 

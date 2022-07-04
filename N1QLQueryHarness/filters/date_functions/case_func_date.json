@@ -97,7 +97,7 @@
     "SELECT DATE_ADD_STR('2020-02-29', -2, 'month'), DATE_ADD_STR('2020-02-29', -2, 'calendar_month')",
     "SELECT DATE_ADD_STR('2021-01-30', 1, 'month'), DATE_ADD_STR('2021-01-30', 1, 'calendar_month') FROM scratch",
     "SELECT DATE_ADD_STR('2021-01-30', 1, 'month'), DATE_ADD_STR('2021-01-30', 1, 'calendar_month')",
-    "select STR_TO_MILLIS('2015-01-01T16:00:00-08:00'),STR_TO_MILLIS('2015/01/01 16:00:00-08:00','YYYY MM DD hh:mm:ssTZD'),STR_TO_MILLIS('2015/01/01T16:00:00-08:00','%Y/%m/%dT%T%z'),STR_TO_MILLIS('4pm on 1st JaN 15 in America/Los_Angeles','%-I%P on %-d%f %^b %y in %z'),STR_TO_MILLIS('00:00:00','%I:%M:%S'),STR_TO_MILLIS('00:00:00+0000','%H:%M:%S%z')",
+    "select STR_TO_MILLIS('2015-01-01T16:00:00-08:00'),STR_TO_MILLIS('2015/01/01 16:00:00-08:00','YYYY MM DD hh:mm:ssTZD'),STR_TO_MILLIS('2015/01/01T16:00:00-08:00','%Y/%m/%dT%T%z'),STR_TO_MILLIS('4pm on 1st JaN 15 in America/Los_Angeles','%-I%P on %-d%f %^b %y in %z'),STR_TO_MILLIS('00:00:00','%I:%M:%S'),STR_TO_MILLIS('00:00:00+0000','%H:%M:%S%z'),STR_TO_MILLIS('00:00:00+0000','HH24:MI:SSTZD'),STR_TO_MILLIS('Monday 12 pm, 1 MAR Z','Day HH12 pm, DD MON TZD'),STR_TO_MILLIS('4pm 1 JAN 15 America/Los_Angeles','HH12am DD MON YY TZD')",
     "select str_to_millis('2021-06-25-14:48:42.123+00:00pm','YYYY-MM-DD-hh:mm:ss.sTZDpp'),str_to_millis('2021-06-25-14:48:42.123+00:00pmJuneFri','%C%y-%m-%d-%H:%M:%S.%N%z%P%B%a')",
     "select MILLIS_TO_UTC(1.4201968e+12,'2006-01-02 15:04:05'),MILLIS_TO_UTC(1.4201968e+12,'(CC)YY/MM/DD @ HH.mm (PP) [TZD]'),MILLIS_TO_UTC(1.4201968e+12,'%T %z %D')",
     "select nvl2(str_to_millis('30','CC'),true,false) ",

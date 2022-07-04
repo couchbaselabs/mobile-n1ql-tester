@@ -27,6 +27,8 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
 using N1QLQueryHarness.Utilities;
+using Serilog;
+using Spectre.Console;
 
 namespace N1QLQueryHarness.Commands
 {
@@ -41,9 +43,11 @@ namespace N1QLQueryHarness.Commands
 
         #region Properties
 
-        [Option(Description = "The SHA of the Git commit of LiteCore to use")]
-        [Required]
+        [Option(Description = "The SHA of the Git commit of LiteCore to use (")]
         public string? SHA { get; set; }
+
+        [Option(Description = "The version of LiteCore to downlo")]
+        public Version? Version { get; set; }
 
         [Option(LongName = "wd",
             Description = "The directory to operate in (should be consistent between all subcommands)")]
@@ -54,22 +58,22 @@ namespace N1QLQueryHarness.Commands
 
         #region Private Methods
 
-        private async Task CopyAsync(Stream from, Stream to)
+        private Task CopyAsync(Stream from, Stream to)
         {
-            Console.WriteLine();
-            var buffer = new byte[8192];
-            double total = 0;
-            int numRead;
-            while ((numRead = await from.ReadAsync(buffer).ConfigureAwait(false)) > 0) {
-                await to.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, numRead)).ConfigureAwait(false);
-                total += numRead;
-                var adjusted = total / (1024.0 * 1024.0);
-
-                Console.Write("\r");
-                ColorConsole.Write($"{adjusted:F3} MiB finished...");
-            }
-
-            Console.WriteLine();
+            return AnsiConsole.Status().StartAsync("Downloading (0.00 MiB)", async ctx =>
+            {
+                var buffer = new byte[8192];
+                double total = 0;
+                int numRead;
+                while ((numRead = await from.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+                {
+                    await to.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, numRead)).ConfigureAwait(false);
+                    total += numRead;
+                    var adjusted = total / (1024.0 * 1024.0);
+                    ctx.Spinner(Spinner.Known.Shark);
+                    ctx.Status($"Downloading ({adjusted:G2} MiB)");
+                }
+            });
         }
 
         private async Task DownloadLiteCore(string workingDir)
@@ -82,7 +86,7 @@ namespace N1QLQueryHarness.Commands
             }
 
             Directory.CreateDirectory(litecoreBinDir);
-            ColorConsole.WriteLine("Downloading LiteCore prebuilt binary...");
+            Log.Information("Downloading LiteCore prebuilt binary...");
             string osForUrl, extension;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 osForUrl = "windows-win64";
@@ -94,21 +98,24 @@ namespace N1QLQueryHarness.Commands
                 osForUrl = "linux";
                 extension = "tar.gz";
             } else {
-                ColorConsole.ForceWriteLine($"Unsupported OS: {RuntimeInformation.OSDescription}");
+                Log.Error("Unsupported OS: {0}", RuntimeInformation.OSDescription);
                 throw new NotSupportedException($"Unsupported OS: {RuntimeInformation.OSDescription}");
             }
 
+            var shaPrefix = SHA!.Substring(0, 2);
             var urlStr =
-                $"http://nexus.build.couchbase.com:8081/nexus/content/repositories/releases/com/couchbase/litecore/couchbase-litecore-{osForUrl}/{SHA}/couchbase-litecore-{osForUrl}-{SHA}.{extension}";
-            ColorConsole.WriteLine($"Attempting to download {urlStr}");
-            var outputPath = Path.Join(litecoreBinDir, $"litecore.{extension}");
-            var downloadStream = await HttpClient.GetStreamAsync(urlStr).ConfigureAwait(false);
-            await using (var fout = File.OpenWrite(outputPath)) {
+                $"http://latestbuilds.service.couchbase.com/builds/latestbuilds/couchbase-lite-core/sha/{shaPrefix}/{SHA}/couchbase-lite-core-{osForUrl}.{extension}";
+            Log.Information("Attempting to download {0}", urlStr);
+            var outputPath = Path.Join(Path.GetTempPath(), $"litecore.{extension}");
+            { 
+                using var downloadStream = await HttpClient.GetStreamAsync(urlStr).ConfigureAwait(false);
+                await using var fout = File.OpenWrite(outputPath);
                 await CopyAsync(downloadStream, fout).ConfigureAwait(false);
+                await fout.FlushAsync().ConfigureAwait(false);
             }
 
-            ColorConsole.WriteLine("Extracting...");
-            await using (var fin = File.OpenRead(outputPath)) {
+            Log.Information("Extracting...");
+            await using (var fin = File.Open(outputPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 await Decompressor.GetDecompressor().DecompressAsync(fin, litecoreBinDir).ConfigureAwait(false);
             }
 
@@ -119,12 +126,12 @@ namespace N1QLQueryHarness.Commands
         // ReSharper disable once UnusedMember.Local
         private async Task<int> OnExecute()
         {
+            Program.ConfigureLogging(LogLevel);
             var workingDir = WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
             var dataDir = Path.Combine(workingDir, "data");
             if (!Directory.Exists(dataDir)) {
-                Console.ForegroundColor = ColorConsole.ErrorColor;
-                Console.WriteLine($"Query data not found at {dataDir}");
-                Console.WriteLine("Please the repo at https://github.com/couchbase/query/ into that folder");
+                Log.Fatal($"Query data not found at {dataDir}");
+                Log.Fatal("Please clone the repo at https://github.com/couchbase/query/ into that folder");
                 return 1;
             }
 

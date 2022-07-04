@@ -26,6 +26,7 @@ using System.Text.RegularExpressions;
 using Couchbase.Lite;
 using N1QLQueryHarness.Commands;
 using Newtonsoft.Json;
+using Serilog;
 using sly.buildresult;
 using sly.lexer;
 
@@ -219,7 +220,7 @@ namespace N1QLQueryHarness.Utilities
             // BUG: Somehow this is reset to Info by the time we reach here...
             Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.None;
 
-            ColorConsole.WriteLine($"Beginning db generation for {relativePath}...");
+            Log.Information($"Beginning db generation for {relativePath}...");
 
             var dbMap = new Dictionary<string, Database>();
             foreach (var entry in inputData) {
@@ -234,16 +235,14 @@ namespace N1QLQueryHarness.Utilities
                     Database.Delete(dbName, outputDirectory);
                     var dbToInsert = new Database(dbName, dbConfig);
                     var dbRelativePath = Path.GetRelativePath(parent.OutputDirectory!, dbToInsert.Path!);
-                    ColorConsole.WriteLine($"   ...Created database {dbRelativePath}", LogLevel.Verbose,
-                        ColorConsole.NoisyColor);
+                    Log.Verbose("   ...Created database {0}", dbRelativePath);
                     dbMap[dbName] = dbToInsert;
                 }
 
                 var db = dbMap[dbName]!;
                 var keyValueMatches = new ValueParser(statements).Parse();
                 if (keyValueMatches.Count == 0) {
-                    ColorConsole.WriteLine($"Invalid insert, missing key / value: {statements}",
-                        color: ColorConsole.ErrorColor);
+                    Log.Fatal($"Invalid insert, missing key / value: {statements}");
                     throw new InvalidDataException($"Invalid insert, missing key / value: {statements}");
                 }
 
@@ -260,12 +259,8 @@ namespace N1QLQueryHarness.Utilities
                 }
             }
 
-            using (var group = ColorConsole.BeginGroup()) {
-                ColorConsole.WriteLine($"Finished db generation for {relativePath}!");
-                ColorConsole.WriteLine(
-                    $"\t...Databases found {JsonConvert.SerializeObject(dbMap.Values.Select(x => x.Name))}",
-                    LogLevel.Detailed, ColorConsole.NoisyColor);
-            }
+            Log.Information($"Finished db generation for {relativePath}!");
+            Log.Verbose("\t...Databases found {0}", JsonConvert.SerializeObject(dbMap.Values.Select(x => x.Name)));
 
             foreach (var entry in dbMap) {
                 entry.Value.Dispose();

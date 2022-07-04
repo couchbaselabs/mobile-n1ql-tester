@@ -57,8 +57,15 @@ namespace N1QLQueryHarness.Utilities
             public async Task DecompressAsync(Stream input, string outputDirectory)
             {
                 using var zin = new ZipArchive(input, ZipArchiveMode.Read, true);
-                foreach (var entry in zin.Entries) {
-                    var outputPath = Path.Combine(outputDirectory, entry.Name);
+                foreach (var entry in zin.Entries)
+                {
+                    var outputPath = Path.Combine(outputDirectory, entry.FullName);
+                    if (outputPath.EndsWith("/"))
+                    {
+                        Directory.CreateDirectory(Path.Combine(outputDirectory, entry.FullName));
+                        continue;
+                    }
+
                     await using var entryStream = entry.Open();
                     await using var fout = File.OpenWrite(outputPath);
                     await entryStream.CopyToAsync(fout).ConfigureAwait(false);

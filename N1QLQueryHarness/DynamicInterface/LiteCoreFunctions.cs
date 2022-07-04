@@ -22,6 +22,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using N1QLQueryHarness.Utilities;
+using Serilog;
 
 // ReSharper disable InconsistentNaming
 #pragma warning disable 649
@@ -127,7 +128,7 @@ namespace N1QLQueryHarness.DynamicInterface
         public LiteCoreFunctions(string filename)
         {
             if (!File.Exists(filename)) {
-                ColorConsole.ForceWriteLine("LiteCore.dll not found, run the prepare command first!");
+                Log.Fatal("LiteCore.dll not found, run the prepare command first!");
                 throw new FileNotFoundException();
             }
 
