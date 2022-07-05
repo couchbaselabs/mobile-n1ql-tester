@@ -22,6 +22,7 @@ using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -30,14 +31,28 @@ using N1QLQueryHarness.Utilities;
 using Serilog;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using ValidationResult = Spectre.Console.ValidationResult;
 
 namespace N1QLQueryHarness.Commands
 {
     internal sealed class PrepareCommandSettings : BaseCommandSettings
     {
-        [CommandArgument(0, "[SHA]")]
+        [CommandArgument(0, "<SHA>")]
         [Description("The SHA of the Git commit of LiteCore to use")]
         public string SHA { get; set; } = "";
+
+        public override ValidationResult Validate()
+        {
+            if(SHA.Length != 40) {
+                return ValidationResult.Error("Invalid length for SHA-1 hash");
+            }
+
+            var valid = SHA.All(currentCharacter =>
+                (currentCharacter >= '0' && currentCharacter <= '9') ||
+                (currentCharacter >= 'a' && currentCharacter <= 'f') ||
+                (currentCharacter >= 'A' && currentCharacter <= 'F'));
+            return valid ? ValidationResult.Success() : ValidationResult.Error("Invalid characters in SHA-1 hash");
+        }
     }
 
     internal sealed class PrepareCommand : AsyncCommand<PrepareCommandSettings>

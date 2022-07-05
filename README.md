@@ -23,7 +23,7 @@ git sparse-checkout add test/filestore/test_cases
 
 ## Building / Running
 
-This is a .NET 5.0 application, and as such it requires the [.NET 5.0 SDK](https://aka.ms/netcore) or higher to build.  A brief summary of the commands are:
+This is a .NET 6.0 application, and as such it requires the [.NET 6.0 SDK](https://aka.ms/netcore) or higher to build.  A brief summary of the commands are:
 
 | Command | What It Does |
 | --------| ------------ |
@@ -41,55 +41,52 @@ Each of these commands can create a release variant instead by passing `-c Relea
 ## Options
 
 ```
-N1QLQueryHarness v0.1.0
+USAGE:
+    N1QLQueryHarness [OPTIONS] <COMMAND>
 
-A suite of tools for running N1QL tests using Couchbase Server test data
+EXAMPLES:
+    N1QLQueryHarness prepare b9a487021eadcf0539f993dd4aeeba699721f580
 
-Usage: N1QLQueryHarness [command] [options]
+OPTIONS:
+    -h, --help       Prints help information
+    -v, --version    Prints version information
 
-Options:
-  --version  Show version information.
-  --help     Show help information.
-
-Commands:
-  migrate    Migrate server query test data to mobile format
-  prepare    Prepare the specified version of LiteCore for use
-  run        Executes the prepared query data and checks the results
-
-Run 'N1QLQueryHarness [command] --help' for more information about a command.
+COMMANDS:
+    prepare    Prepare the specified version of LiteCore for use
+    migrate    Migrate server query test data to mobile format
+    run        Executes the prepared query data and checks the results
 ```
 
 ## Prepare Stage
 
 ```
-Prepare the specified version of LiteCore for use
+USAGE:
+    N1QLQueryHarness prepare <SHA> [OPTIONS]
 
-Usage: N1QLQueryHarness prepare [options]
+EXAMPLES:
+    N1QLQueryHarness prepare b9a487021eadcf0539f993dd4aeeba699721f580
 
-Options:
-  --help                                                  Show help information.
-  -s|--sha <SHA>                                          The SHA of the Git commit of LiteCore to use
-  -w|--wd <WORKING_DIRECTORY>                             The directory to operate in (should be consistent between all subcommands)
-  -c|--couchbase-log-directory <COUCHBASE_LOG_DIRECTORY>  The (optional) directory to log Couchbase Lite logs to
-  -t|--trace[:<TRACE>]                                    Specifies the level of output to write at (normal|detailed|verbose)
-                                                          Allowed values are: Normal, Detailed, Verbose.
+ARGUMENTS:
+    <SHA>    The SHA of the Git commit of LiteCore to use
+
+OPTIONS:
+    -h, --help           Prints help information
+    -l, --log-level      Specifies the level of output to write at
+    -w, --working-dir    The directory to operate in (should be consistent between all subcommands)
 ```
 
-This stage will download the LiteCore identified by the git commit SHA passed in with the `--sha` argument.  The rest of the arguments are optional.  The results will be placed in the `lib` subdirectory in the working directory (by default the same directory as the executable location).
+This stage will download the LiteCore identified by the git commit SHA passed in with the `<SHA>` argument.  The rest of the arguments are optional.  The results will be placed in the `lib` subdirectory in the working directory (by default the same directory as the executable location).
 
 ## Migrate Stage
 
 ```
-Migrate server query test data to mobile format
+USAGE:
+    N1QLQueryHarness migrate [OPTIONS]
 
-Usage: N1QLQueryHarness migrate [options]
-
-Options:
-  --help                                                  Show help information.
-  -w|--working-directory <WORKING_DIRECTORY>              The directory to operate in (should be consistent between all subcommands)
-  -c|--couchbase-log-directory <COUCHBASE_LOG_DIRECTORY>  The (optional) directory to log Couchbase Lite logs to
-  -t|--trace[:<TRACE>]                                    Specifies the level of output to write at (normal|detailed|verbose)
-                                                          Allowed values are: Normal, Detailed, Verbose.                                               
+OPTIONS:
+    -h, --help           Prints help information
+    -l, --log-level      Specifies the level of output to write at
+    -w, --working-dir    The directory to operate in (should be consistent between all subcommands)  
 ```
 
 This stage will migrate data previously cloned in the prerequisite step into a folder called `out` in the working directory.  All arguments are optional.
@@ -97,19 +94,16 @@ This stage will migrate data previously cloned in the prerequisite step into a f
 ## Run Stage
 
 ```
-Executes the prepared query data and checks the results
+USAGE:
+    N1QLQueryHarness run [OPTIONS]
 
-Usage: N1QLQueryHarness run [options]
-
-Options:
-  --help                                                  Show help information.
-  -o|--ignore-order                                       Considers result which only differ by ordering equal
-  -j|--json-report                                        If specified, writes a JSON encoded report of the results to the given filename
-  -s|--single-threaded                                    Run single threaded for debugging
-  -w|--wd <WORKING_DIRECTORY>                             The directory to operate in (should be consistent between all subcommands)
-  -c|--couchbase-log-directory <COUCHBASE_LOG_DIRECTORY>  The (optional) directory to log Couchbase Lite logs to
-  -t|--trace[:<TRACE>]                                    Specifies the level of output to write at (normal|detailed|verbose)
-                                                          Allowed values are: Normal, Detailed, Verbose.
+OPTIONS:
+    -h, --help             Prints help information
+    -l, --log-level        Specifies the level of output to write at
+    -w, --working-dir      The directory to operate in (should be consistent between all subcommands)
+    -o, --ignore-order     Considers result which only differ by ordering equal
+    -j, --json-report      If specified, writes a JSON encoded report of the results to the given filename
+        --single-thread    Run single threaded for debugging
 ```
 
 This stage does the actual verification.  If the other two commands were successful there should be a `data`, `lib` and `out` folder in the working directory.  All arguments are optional but `-o` is recommended to ignore the incompatible ordering between mobile and server.  `-j` will summarize the results into a file in addition to printing the results to stdout (in color if possible). If all pass, the return code will be 0.  A positive return value indicates validation failure, and negative indicates the program could not run properly.

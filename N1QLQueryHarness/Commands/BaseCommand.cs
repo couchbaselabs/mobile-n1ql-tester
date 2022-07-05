@@ -18,8 +18,6 @@
 
 #nullable enable
 
-using Couchbase.Lite;
-using Couchbase.Lite.Logging;
 using Spectre.Console.Cli;
 using Serilog.Events;
 using System.ComponentModel;
@@ -30,26 +28,6 @@ namespace N1QLQueryHarness.Commands
 {
     public class BaseCommandSettings : CommandSettings
     {
-        [CommandOption("-d|--log-directory")]
-        [Description("The (optional) directory to log Couchbase Lite logs to")]
-        public string? CouchbaseLogDirectory
-        {
-            get => Database.Log.File.Config?.Directory;
-            set
-            {
-                if (value != null)
-                {
-                    Database.Log.File.Config = new LogFileConfiguration(value);
-                    Database.Log.File.Level = Couchbase.Lite.Logging.LogLevel.Verbose;
-                }
-                else
-                {
-                    Database.Log.File.Config = null;
-                    Database.Log.File.Level = Couchbase.Lite.Logging.LogLevel.None;
-                }
-            }
-        }
-
         [CommandOption("-l|--log-level")]
         [Description("Specifies the level of output to write at")]
         public LogEventLevel LogLevel { get; set; } = LogEventLevel.Information;
