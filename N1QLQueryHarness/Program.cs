@@ -20,11 +20,14 @@
 
 using System.Reflection;
 using System.Threading.Tasks;
-using McMaster.Extensions.CommandLineUtils;
+using Couchbase.Lite;
 using N1QLQueryHarness.Commands;
+using N1QLQueryHarness.Utilities;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.Spectre;
+using Spectre.Console;
+using Spectre.Console.Cli;
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable MemberCanBePrivate.Global
@@ -33,14 +36,8 @@ namespace N1QLQueryHarness
 {
     // ReSharper disable once ClassNeverInstantiated.Global
 
-    [VersionOptionFromMember("--version", MemberName = nameof(GetVersion))]
-    [HelpOption("--help")]
-    [Command(Description = "A suite of tools for running N1QL tests using Couchbase Server test data")]
-    [Subcommand(
-        typeof(MigrateCommand),
-        typeof(PrepareCommand),
-        typeof(RunCommand)
-    )]
+    //[Command(Description = "A suite of tools for running N1QL tests using Couchbase Server test data")]
+
     public sealed class Program
     {
         #region Private Methods
@@ -54,19 +51,24 @@ namespace N1QLQueryHarness
 
         private static async Task<int> Main(string[] args)
         {
-            if (args.Length == 0) {
-                return await CommandLineApplication.ExecuteAsync<Program>("--help");
-            } 
+            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.None;
+            var app = new CommandApp();
+            app.Configure(config =>
+            {
+                PrepareCommand.AddToApplication(config);
+                MigrateCommand.AddToApplication(config);
+                RunCommand.AddToApplication(config);
+                config.SetApplicationName("N1QLQueryHarness");
+                config.SetApplicationVersion(GetVersion());
+                config.SetInterceptor(new LogInterceptor());
+                config.SetExceptionHandler(e =>
+                {
+                    AnsiConsole.WriteException(e, ExceptionFormats.ShortenEverything);
+                    return -99;
+                });
+            });
             
-            return await CommandLineApplication.ExecuteAsync<Program>(args);
-        }
-
-        internal static void ConfigureLogging(LogEventLevel level)
-        {
-            Log.Logger = new LoggerConfiguration()
-                .Enrich.WithThreadId()
-                .WriteTo.Spectre("[<{ThreadId}> {Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}", restrictedToMinimumLevel: level)
-                .CreateLogger();
+            return await app.RunAsync(args);
         }
 
         #endregion

@@ -20,44 +20,63 @@
 
 using Couchbase.Lite;
 using Couchbase.Lite.Logging;
-using McMaster.Extensions.CommandLineUtils;
+using Spectre.Console.Cli;
 using Serilog.Events;
+using System.ComponentModel;
+using Spectre.Console;
+using System.IO;
 
 namespace N1QLQueryHarness.Commands
 {
-    [HelpOption("--help")]
-    public abstract class BaseCommand
+    public class BaseCommandSettings : CommandSettings
     {
-        #region Properties
-
-        [Option(Description = "The (optional) directory to log Couchbase Lite logs to")]
+        [CommandOption("-d|--log-directory")]
+        [Description("The (optional) directory to log Couchbase Lite logs to")]
         public string? CouchbaseLogDirectory
         {
             get => Database.Log.File.Config?.Directory;
             set
             {
-                if (value != null) {
+                if (value != null)
+                {
                     Database.Log.File.Config = new LogFileConfiguration(value);
                     Database.Log.File.Level = Couchbase.Lite.Logging.LogLevel.Verbose;
-                } else {
+                }
+                else
+                {
                     Database.Log.File.Config = null;
                     Database.Log.File.Level = Couchbase.Lite.Logging.LogLevel.None;
                 }
             }
         }
 
-        [Option(Description = "Specifies the level of output to write at")]
+        [CommandOption("-l|--log-level")]
+        [Description("Specifies the level of output to write at")]
         public LogEventLevel LogLevel { get; set; } = LogEventLevel.Information;
 
-        #endregion
+        [CommandOption("-w|--working-dir")]
+        [Description("The directory to operate in (should be consistent between all subcommands)")]
+        public string? WorkingDirectory { get; set; }
 
-        #region Constructors
-
-        protected BaseCommand()
+        public override ValidationResult Validate()
         {
-            Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.None;
+            return ValidateFilePath(WorkingDirectory);
         }
 
-        #endregion
+        protected ValidationResult ValidateFilePath(string? filePath)
+        {
+            if (filePath == null) {
+                return ValidationResult.Success();
+            }
+
+            try {
+                var fi = new FileInfo(filePath);
+                return ValidationResult.Success();
+            } catch {
+
+            }
+
+            return ValidationResult.Error("Must be a valid file path");
+        }
     }
 }

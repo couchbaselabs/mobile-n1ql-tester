@@ -19,21 +19,28 @@
 #nullable enable
 
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using McMaster.Extensions.CommandLineUtils;
 using N1QLQueryHarness.Utilities;
 using Serilog;
 using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace N1QLQueryHarness.Commands
 {
-    [Command(Description = "Prepare the specified version of LiteCore for use")]
-    internal sealed class PrepareCommand : BaseCommand
+    internal sealed class PrepareCommandSettings : BaseCommandSettings
+    {
+        [CommandArgument(0, "[SHA]")]
+        [Description("The SHA of the Git commit of LiteCore to use")]
+        public string SHA { get; set; } = "";
+    }
+
+    internal sealed class PrepareCommand : AsyncCommand<PrepareCommandSettings>
     {
         #region Constants
 
@@ -41,18 +48,20 @@ namespace N1QLQueryHarness.Commands
 
         #endregion
 
-        #region Properties
+        #region Variables
 
-        [Option(Description = "The SHA of the Git commit of LiteCore to use (")]
-        public string? SHA { get; set; }
+        private PrepareCommandSettings _settings = new();
 
-        [Option(Description = "The version of LiteCore to downlo")]
-        public Version? Version { get; set; }
+        #endregion
 
-        [Option(LongName = "wd",
-            Description = "The directory to operate in (should be consistent between all subcommands)")]
-        [LegalFilePath]
-        public string? WorkingDirectory { get; set; }
+        #region Public Methods
+
+        public static void AddToApplication(IConfigurator config)
+        {
+            config.AddCommand<PrepareCommand>("prepare")
+                .WithDescription("Prepare the specified version of LiteCore for use")
+                .WithExample(new[] { "prepare", "b9a487021eadcf0539f993dd4aeeba699721f580" });
+        }
 
         #endregion
 
@@ -102,9 +111,9 @@ namespace N1QLQueryHarness.Commands
                 throw new NotSupportedException($"Unsupported OS: {RuntimeInformation.OSDescription}");
             }
 
-            var shaPrefix = SHA!.Substring(0, 2);
+            var shaPrefix = _settings.SHA.Substring(0, 2);
             var urlStr =
-                $"http://latestbuilds.service.couchbase.com/builds/latestbuilds/couchbase-lite-core/sha/{shaPrefix}/{SHA}/couchbase-lite-core-{osForUrl}.{extension}";
+                $"http://latestbuilds.service.couchbase.com/builds/latestbuilds/couchbase-lite-core/sha/{shaPrefix}/{_settings.SHA}/couchbase-lite-core-{osForUrl}.{extension}";
             Log.Information("Attempting to download {0}", urlStr);
             var outputPath = Path.Join(Path.GetTempPath(), $"litecore.{extension}");
             { 
@@ -122,12 +131,14 @@ namespace N1QLQueryHarness.Commands
             File.Delete(outputPath);
         }
 
-        // Called via reflection
-        // ReSharper disable once UnusedMember.Local
-        private async Task<int> OnExecute()
+        #endregion
+
+        #region AsyncCommand Implementation
+
+        public override async Task<int> ExecuteAsync(CommandContext context, PrepareCommandSettings settings)
         {
-            Program.ConfigureLogging(LogLevel);
-            var workingDir = WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            _settings = settings;
+            var workingDir = _settings.WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
             var dataDir = Path.Combine(workingDir, "data");
             if (!Directory.Exists(dataDir)) {
                 Log.Fatal($"Query data not found at {dataDir}");

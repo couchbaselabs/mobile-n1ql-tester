@@ -24,21 +24,23 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Couchbase.Lite;
-using McMaster.Extensions.CommandLineUtils;
+using Spectre.Console.Cli;
 using N1QLQueryHarness.Utilities;
 using Serilog;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using Spectre.Console;
 
 namespace N1QLQueryHarness.Commands
 {
-    [Command(Description = "Migrate server query test data to mobile format")]
-    internal sealed class MigrateCommand : BaseCommand
+    internal sealed class MigrateCommand : AsyncCommand<BaseCommandSettings>
     {
         #region Variables
 
         private readonly DatabaseGenerator _databaseGenerator = new();
         private readonly QueryDataMigrator _dataMigrator = new();
         private int _used, _total;
-        private string? _workingDir;
+        private BaseCommandSettings _settings = new();
 
         #endregion
 
@@ -46,39 +48,42 @@ namespace N1QLQueryHarness.Commands
 
         public string InputDirectory
         {
-            get
-            {
-                _workingDir ??= WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-                return Path.Combine(_workingDir, "data", "test", "filestore", "test_cases");
+            get {
+                _settings!.WorkingDirectory ??= _settings.WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+                return Path.Combine(_settings.WorkingDirectory, "data", "test", "filestore", "test_cases");
             }
         }
 
         public string OutputDirectory
         {
-            get
-            {
-                _workingDir ??= WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-                return Path.Combine(_workingDir, "out");
+            get {
+                _settings!.WorkingDirectory ??= _settings.WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+                return Path.Combine(_settings.WorkingDirectory, "out");
             }
         }
 
-        [Option(Description = "The directory to operate in (should be consistent between all subcommands)")]
-        [LegalFilePath]
-        public string? WorkingDirectory { get; set; }
+        public override async Task<int> ExecuteAsync(CommandContext context, BaseCommandSettings settings)
+        {
+            _settings = settings;
+            var tasks = Directory.EnumerateDirectories(InputDirectory!).Select(ProcessDirectory);
+            await Task.WhenAll(tasks);
+            Log.Information("== Processed {0} queries, of which {1} were used ==", _total, _used);
+            return 0;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        public static void AddToApplication(IConfigurator config)
+        {
+            config.AddCommand<MigrateCommand>("migrate")
+                .WithDescription("Migrate server query test data to mobile format");
+        }
 
         #endregion
 
         #region Private Methods
-
-        // Called via reflection
-        // ReSharper disable once UnusedMember.Local
-        private async Task OnExecute()
-        {
-            Program.ConfigureLogging(LogLevel);
-            var tasks = Directory.EnumerateDirectories(InputDirectory!).Select(ProcessDirectory);
-            await Task.WhenAll(tasks);
-            Log.Information("== Processed {0} queries, of which {1} were used ==", _total, _used);
-        }
 
         private async Task ProcessDirectory(string path)
         {

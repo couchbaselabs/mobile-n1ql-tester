@@ -21,6 +21,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -29,13 +31,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using McMaster.Extensions.CommandLineUtils;
 using N1QLQueryHarness.DynamicInterface;
-using N1QLQueryHarness.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using Spectre.Console;
+using Spectre.Console.Cli;
 
 namespace N1QLQueryHarness.Commands
 {
@@ -183,8 +184,22 @@ namespace N1QLQueryHarness.Commands
         #endregion
     }
 
-    [Command(Description = "Executes the prepared query data and checks the results")]
-    internal sealed class RunCommand : BaseCommand
+    internal sealed class RunCommandSettings : BaseCommandSettings
+    {
+        [CommandOption("-o|--ignore-order")]
+        [Description("Considers result which only differ by ordering equal")]
+        public bool IgnoreOrdering { get; set; }
+
+        [CommandOption("-j|--json-report")]
+        [Description("If specified, writes a JSON encoded report of the results to the given filename")]
+        public string? JsonReportFilename { get; set; }
+
+        [CommandOption("--single-thread")]
+        [Description("Run single threaded for debugging")]
+        public bool SingleThreaded { get; set; }
+    }
+
+    internal sealed class RunCommand : Command<RunCommandSettings>
     {
         #region Constants
 
@@ -198,26 +213,17 @@ namespace N1QLQueryHarness.Commands
         private LiteCoreFunctions? _lc;
         private RunResult _result = new();
         private unsafe C4Database* _scratchDb;
+        private RunCommandSettings _settings = new();
 
         #endregion
 
-        #region Properties
+        #region Public Methods
 
-        [Option("-o|--ignore-order", CommandOptionType.NoValue,
-            Description = "Considers result which only differ by ordering equal")]
-        public bool IgnoreOrdering { get; set; }
-
-        [Option("-j|--json-report",
-            Description = "If specified, writes a JSON encoded report of the results to the given filename")]
-        public string? JsonReportFilename { get; set; }
-
-        [Option(CommandOptionType.NoValue, Description = "Run single threaded for debugging")]
-        public bool SingleThreaded { get; set; }
-
-        [Option(LongName = "wd",
-            Description = "The directory to operate in (should be consistent between all subcommands)")]
-        [LegalFilePath]
-        public string? WorkingDirectory { get; set; }
+        public static void AddToApplication(IConfigurator config)
+        {
+            config.AddCommand<RunCommand>("run")
+                .WithDescription("Executes the prepared query data and checks the results");
+        }
 
         #endregion
 
@@ -231,7 +237,7 @@ namespace N1QLQueryHarness.Commands
             var serializer = JsonSerializer.CreateDefault();
             var json = serializer.Deserialize<IReadOnlyList<TestQuery>>(jsonReader);
             foreach (var query in json) {
-                if (SingleThreaded) {
+                if (_settings.SingleThreaded) {
                     CheckQuerySync(dbDirectory, query);
                 } else {
                     await CheckQueryAsync(dbDirectory, query);
@@ -381,46 +387,6 @@ namespace N1QLQueryHarness.Commands
             throw new NotSupportedException($"Invalid platform {RuntimeInformation.OSDescription}");
         }
 
-        // Called via reflection
-        // ReSharper disable once UnusedMember.Local
-        private unsafe int OnExecute()
-        {
-            Program.ConfigureLogging(LogLevel);
-            var workingDir = WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-            var librarySubDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "bin" : "lib";
-            var lcPath = Path.Combine(workingDir, "lib", librarySubDir, LibraryFilename());
-            try {
-                _lc = new LiteCoreFunctions(lcPath);
-                _lc!.c4log_setCallbackLevel(5);
-            } catch (FileNotFoundException) {
-                return -1;
-            }
-
-            try {
-                var dataPath = Path.Combine(workingDir, "out");
-                _scratchDb = OpenDatabase(dataPath, "scratch");
-                foreach (var dir in Directory.EnumerateDirectories(dataPath)) {
-                    CheckQuerySets(dir);
-                }
-            } finally {
-                _lc!.c4db_release(_scratchDb);
-                _scratchDb = null;
-            }
-
-            AnsiConsole.WriteLine();
-            AnsiConsole.MarkupLine($"[green]PASS: {_result.PassCount} [/]");
-            AnsiConsole.MarkupLine($"[yellow]FAIL: {_result.FailCount} [/]");
-            AnsiConsole.MarkupLine($"[red]ERROR: {_result.ErrorCount} [/]");
-            if (JsonReportFilename != null) {
-                using var fout = File.OpenWrite(Path.Combine(workingDir, JsonReportFilename));
-                using var jout = new JsonTextWriter(new StreamWriter(fout, Encoding.UTF8));
-                JsonSerializer.CreateDefault(new JsonSerializerSettings {Formatting = Formatting.Indented})
-                    .Serialize(jout, _result);
-            }
-
-            return _result.ErrorCount + _result.FailCount;
-        }
-
         private unsafe C4Database* OpenDatabase(string dbDirectory, string dbName)
         {
             var err = new C4Error();
@@ -463,9 +429,9 @@ namespace N1QLQueryHarness.Commands
 
             AnsiConsole.MarkupLine($"[yellow][[FAIL]] {query.EscapeMarkup()}[/]");
             AnsiConsole.MarkupLine("[yellow]Expected:[/]");
-            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented)}[/]");
+            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented).EscapeMarkup()}[/]");
             AnsiConsole.MarkupLine("[yellow]Actual:[/]");
-            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented)}[/]");
+            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented).EscapeMarkup()}[/]");
         }
 
         private void RecordPass(string query)
@@ -483,10 +449,52 @@ namespace N1QLQueryHarness.Commands
                 return false;
             }
 
-            var comparer = new JsonEqualityComparer(IgnoreOrdering);
-            return !IgnoreOrdering
+            var comparer = new JsonEqualityComparer(_settings.IgnoreOrdering);
+            return !_settings.IgnoreOrdering
                 ? expected.SequenceEqual(actual, comparer)
                 : comparer.RecursiveEquals(expected, actual);
+        }
+
+        #endregion
+
+        #region Command Implementation
+
+        public unsafe override int Execute([NotNull] CommandContext context, [NotNull] RunCommandSettings settings)
+        {
+            _settings = settings;
+            var workingDir = _settings.WorkingDirectory ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            var librarySubDir = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "bin" : "lib";
+            var lcPath = Path.Combine(workingDir, "lib", librarySubDir, LibraryFilename());
+            try {
+                _lc = new LiteCoreFunctions(lcPath);
+                _lc!.c4log_setCallbackLevel(5);
+            } catch (FileNotFoundException) {
+                return -1;
+            }
+
+            try {
+                var dataPath = Path.Combine(workingDir, "out");
+                _scratchDb = OpenDatabase(dataPath, "scratch");
+                foreach (var dir in Directory.EnumerateDirectories(dataPath)) {
+                    CheckQuerySets(dir);
+                }
+            } finally {
+                _lc!.c4db_release(_scratchDb);
+                _scratchDb = null;
+            }
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.MarkupLine($"[green]PASS: {_result.PassCount} [/]");
+            AnsiConsole.MarkupLine($"[yellow]FAIL: {_result.FailCount} [/]");
+            AnsiConsole.MarkupLine($"[red]ERROR: {_result.ErrorCount} [/]");
+            if (_settings.JsonReportFilename != null) {
+                using var fout = File.OpenWrite(Path.Combine(workingDir, _settings.JsonReportFilename));
+                using var jout = new JsonTextWriter(new StreamWriter(fout, Encoding.UTF8));
+                JsonSerializer.CreateDefault(new JsonSerializerSettings { Formatting = Formatting.Indented })
+                    .Serialize(jout, _result);
+            }
+
+            return _result.ErrorCount + _result.FailCount;
         }
 
         #endregion
