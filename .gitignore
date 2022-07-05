@@ -358,3 +358,8 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/csharp
+
+data/
+out/
+lib/
+results.json
