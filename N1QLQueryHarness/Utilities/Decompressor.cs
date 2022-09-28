@@ -16,8 +16,10 @@
 // limitations under the License.
 // 
 
+using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -57,11 +59,9 @@ namespace N1QLQueryHarness.Utilities
             public async Task DecompressAsync(Stream input, string outputDirectory)
             {
                 using var zin = new ZipArchive(input, ZipArchiveMode.Read, true);
-                foreach (var entry in zin.Entries)
-                {
+                foreach (var entry in zin.Entries) {
                     var outputPath = Path.Combine(outputDirectory, entry.FullName);
-                    if (outputPath.EndsWith("/"))
-                    {
+                    if (outputPath.EndsWith("/")) {
                         Directory.CreateDirectory(Path.Combine(outputDirectory, entry.FullName));
                         continue;
                     }
@@ -84,6 +84,18 @@ namespace N1QLQueryHarness.Utilities
                 using var gin = new GZipStream(input, CompressionMode.Decompress, true);
                 using var tar = TarArchive.CreateInputTarArchive(gin, Encoding.UTF8);
                 tar.ExtractContents(outputDirectory);
+                var libDir = Path.Combine(outputDirectory, "lib");
+                foreach (var f in Directory.EnumerateFiles(libDir)) {
+                    // ICSharpCode puzzingly doesn't copy symlinks...
+                    var fileName = Path.GetFileName(f);
+                    if (fileName.StartsWith("libicu")) {
+                        var parts = fileName.Split('.');
+                        var symLinkName = string.Join('.', parts.Take(parts.Length - 1));
+                        File.CreateSymbolicLink(Path.Combine(libDir, symLinkName), fileName);
+                        Console.WriteLine($"Created {symLinkName} -> {fileName}");
+                    }
+                }
+
                 return Task.CompletedTask;
             }
 
