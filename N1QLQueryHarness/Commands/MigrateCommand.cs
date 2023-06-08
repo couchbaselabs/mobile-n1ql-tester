@@ -105,18 +105,6 @@ namespace N1QLQueryHarness.Commands
                     _total += result.total;
                 }
             }
-
-            var dbConfig = new DatabaseConfiguration
-            {
-                Directory = OutputDirectory
-            };
-
-            if (!Database.Exists("scratch", OutputDirectory!)) {
-                using var db = new Database("scratch", dbConfig);
-                using var doc = new MutableDocument();
-                doc.SetString("foo", "bar");
-                db.Save(doc);
-            }
         }
 
         #endregion

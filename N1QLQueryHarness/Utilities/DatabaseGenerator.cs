@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Couchbase.Lite;
 using N1QLQueryHarness.Commands;
 using Newtonsoft.Json;
@@ -181,7 +182,7 @@ namespace N1QLQueryHarness.Utilities
     {
         #region Constants
 
-        private static readonly Regex DbNameRegex = new("^INSERT INTO ([a-z]+)",
+        private static readonly Regex CollectionNameRegex = new("^INSERT INTO ([a-z]+)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         #endregion
@@ -217,54 +218,56 @@ namespace N1QLQueryHarness.Utilities
                 Directory = outputDirectory
             };
 
+            Database.Delete("data", outputDirectory);
+            using var db = new Database("data", dbConfig);
+
             // BUG: Somehow this is reset to Info by the time we reach here...
             Database.Log.Console.Level = Couchbase.Lite.Logging.LogLevel.None;
 
             Log.Information($"Beginning db generation for {relativePath}...");
 
-            var dbMap = new Dictionary<string, Database>();
+            var collections = new HashSet<string>();
             foreach (var entry in inputData) {
                 var statements = entry.Statements!;
-                var dbNameMatch = DbNameRegex.Match(statements).Groups;
-                if (dbNameMatch.Count != 2) {
-                    throw new InvalidDataException($"Invalid insert, missing db name: {statements}");
+                var collNameMatch = CollectionNameRegex.Match(statements).Groups;
+                if (collNameMatch.Count != 2) {
+                    throw new InvalidDataException($"Invalid insert, missing collection name: {statements}");
                 }
 
-                var dbName = dbNameMatch[1].Value;
-                if (!dbMap.ContainsKey(dbName)) {
-                    Database.Delete(dbName, outputDirectory);
-                    var dbToInsert = new Database(dbName, dbConfig);
-                    var dbRelativePath = Path.GetRelativePath(parent.OutputDirectory!, dbToInsert.Path!);
-                    Log.Verbose("   ...Created database {0}", dbRelativePath);
-                    dbMap[dbName] = dbToInsert;
-                }
+                var collName = collNameMatch[1].Value;
+                collections.Add(collName);
+                try {
+                    using var collection = db.CreateCollection(collName);
+                    var keyValueMatches = new ValueParser(statements).Parse();
+                    if (keyValueMatches.Count == 0) {
+                        Log.Fatal($"Invalid insert, missing key / value: {statements}");
+                        throw new InvalidDataException($"Invalid insert, missing key / value: {statements}");
+                    }
 
-                var db = dbMap[dbName]!;
-                var keyValueMatches = new ValueParser(statements).Parse();
-                if (keyValueMatches.Count == 0) {
-                    Log.Fatal($"Invalid insert, missing key / value: {statements}");
-                    throw new InvalidDataException($"Invalid insert, missing key / value: {statements}");
-                }
+                    for (int i = 0; i < keyValueMatches.Count; i += 2) {
+                        var key = keyValueMatches[i];
+                        key = key.StartsWith("\"") ? key.Trim('"') : KeyGenerator(key);
+                        var val = JsonConvert.DeserializeObject<IDictionary<string, object>>(keyValueMatches[i + 1],
+                                      serializerSettings)
+                                  ?? throw new InvalidDataException(
+                                      $"Failed to deserialize value {keyValueMatches[i + 1]}");
 
-                for (int i = 0; i < keyValueMatches.Count; i += 2) {
-                    var key = keyValueMatches[i];
-                    key = key.StartsWith("\"") ? key.Trim('"') : KeyGenerator(key);
-                    var val = JsonConvert.DeserializeObject<IDictionary<string, object>>(keyValueMatches[i + 1],
-                                  serializerSettings)
-                              ?? throw new InvalidDataException(
-                                  $"Failed to deserialize value {keyValueMatches[i + 1]}");
-
-                    using var doc = new MutableDocument(key, val);
-                    db.Save(doc);
+                        using var doc = new MutableDocument(key, val);
+                        collection.Save(doc);
+                    }
+                } catch(CouchbaseException e) {
+                    Log.Error(e, "Failed to create collection {0} for insertion!", collName);
+                    return;
                 }
             }
 
-            Log.Information($"Finished db generation for {relativePath}!");
-            Log.Verbose("\t...Databases found {0}", JsonConvert.SerializeObject(dbMap.Values.Select(x => x.Name)));
+            // To get one result for the cases that don't involve any documents (like math, etc)
+            using var scratchDoc = new MutableDocument();
+            scratchDoc.SetString("foo", "bar");
+            db.GetDefaultCollection().Save(scratchDoc);
 
-            foreach (var entry in dbMap) {
-                entry.Value.Dispose();
-            }
+            Log.Information($"Finished generation for {relativePath}!");
+            Log.Verbose("\t...Collections found {0}", JsonConvert.SerializeObject(collections));
         }
 
         #endregion

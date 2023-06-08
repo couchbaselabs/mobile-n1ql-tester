@@ -203,7 +203,7 @@ namespace N1QLQueryHarness.Commands
     {
         #region Constants
 
-        private static readonly Regex DbNameRegex = new("FROM ([a-z]+)",
+        private static readonly Regex CollectionNameRegex = new("FROM ([a-z]+)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         #endregion
@@ -212,7 +212,6 @@ namespace N1QLQueryHarness.Commands
 
         private LiteCoreFunctions? _lc;
         private RunResult _result = new();
-        private unsafe C4Database* _scratchDb;
         private RunCommandSettings _settings = new();
 
         #endregion
@@ -262,21 +261,12 @@ namespace N1QLQueryHarness.Commands
 
         private unsafe void CheckQuerySync(string dbDirectory, TestQuery query)
         {
-            C4Database* db;
-            bool isScratch = false;
+            C4Database* db = OpenDatabase(dbDirectory, "data");
             string queryStatements;
-            var dbNameMatch = DbNameRegex.Match(query.Statements);
-            if (!dbNameMatch.Success) {
-                db = _scratchDb;
-                isScratch = true;
-                queryStatements = query.Statements + " FROM scratch";
+            var collNameMatch = CollectionNameRegex.Match(query.Statements);
+            if (!collNameMatch.Success) {
+                queryStatements = query.Statements + " FROM _";
             } else {
-                var dbName = dbNameMatch.Groups[1].Value;
-                db = OpenDatabase(dbDirectory, dbName);
-                if (db == null) {
-                    return;
-                }
-
                 queryStatements = query.Statements;
             }
 
@@ -313,10 +303,7 @@ namespace N1QLQueryHarness.Commands
                     RecordPass(queryStatements);
                 }
             } finally {
-                if (!isScratch) {
-                    _lc!.c4db_release(db);
-                }
-
+                _lc!.c4db_release(db);
                 _lc!.c4query_release(c4query);
                 _lc!.c4queryenum_release(e);
             }
@@ -431,7 +418,7 @@ namespace N1QLQueryHarness.Commands
             AnsiConsole.MarkupLine("[yellow]Expected:[/]");
             AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented).EscapeMarkup()}[/]");
             AnsiConsole.MarkupLine("[yellow]Actual:[/]");
-            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(expected, Formatting.Indented).EscapeMarkup()}[/]");
+            AnsiConsole.MarkupLine($"[yellow]{JsonConvert.SerializeObject(actual, Formatting.Indented).EscapeMarkup()}[/]");
         }
 
         private void RecordPass(string query)
@@ -472,15 +459,9 @@ namespace N1QLQueryHarness.Commands
                 return -1;
             }
 
-            try {
-                var dataPath = Path.Combine(workingDir, "out");
-                _scratchDb = OpenDatabase(dataPath, "scratch");
-                foreach (var dir in Directory.EnumerateDirectories(dataPath)) {
-                    CheckQuerySets(dir);
-                }
-            } finally {
-                _lc!.c4db_release(_scratchDb);
-                _scratchDb = null;
+            var dataPath = Path.Combine(workingDir, "out");
+            foreach (var dir in Directory.EnumerateDirectories(dataPath)) {
+                CheckQuerySets(dir);
             }
 
             AnsiConsole.WriteLine();
