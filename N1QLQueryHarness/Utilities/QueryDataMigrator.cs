@@ -70,7 +70,7 @@ namespace N1QLQueryHarness.Utilities
 
         public async Task<(int used, int total)> Migrate(MigrateCommand parent, string inputJsonPath, string outputJsonPath, string exclusionPath)
         {
-            int used, total;
+            int total;
             Log.Information($"Processing {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)}...");
             IReadOnlyCollection<string>? excludeData;
 
@@ -102,11 +102,10 @@ namespace N1QLQueryHarness.Utilities
                 return (0, inputData.Count); // Skip the entire file
             }
 
-            used = total = inputData.Count;
+            total = inputData.Count;
             for (int i = inputData.Count - 1; i >= 0; i--) {
                 var entry = inputData[i];
                 if (excludeData.Contains(entry.Statements) || entry.Statements == null || entry.Results == null) {
-                    used--;
                     inputData.RemoveAt(i);
                 } else {
                     foreach (var c in Converters) {
@@ -122,8 +121,8 @@ namespace N1QLQueryHarness.Utilities
             await using var outputStream =
                 new FileStream(outputJsonPath, FileMode.Create, FileAccess.Write, FileShare.None);
             await JsonSerializer.SerializeAsync(outputStream, inputData, JsonOptions).ConfigureAwait(false);
-            Log.Information($"Finished {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)} after processing {inputData.Count} entries!");
-            return (used, total);
+            Log.Information($"Finished {Path.GetRelativePath(parent.InputDirectory!, inputJsonPath)} after processing {total} entries!");
+            return (inputData.Count, total);
         }
 
         #endregion

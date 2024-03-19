@@ -30,6 +30,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using N1QLQueryHarness.DynamicInterface;
 using Newtonsoft.Json;
@@ -321,8 +322,7 @@ namespace N1QLQueryHarness.Commands
                 Log.Error("\t...{0}", _lc!.c4error_getDescription(err));
                 _result.ErrorResults.Add(new ErrorResult
                     {Query = statements, Message = _lc!.c4error_getDescription(err)});
-                _result.ErrorCount++;
-                _result.Total++;
+                _result.BumpError();
                 if (errorPos >= 0) {
                     Console.WriteLine();
                     var start = errorPos - startOffset;
@@ -396,8 +396,7 @@ namespace N1QLQueryHarness.Commands
         private void RecordError(string query, C4Error error)
         {
             var message = _lc!.c4error_getDescription(error);
-            _result.ErrorCount++;
-            _result.Total++;
+            _result.BumpError();
             _result.ErrorResults.Add(new ErrorResult {Query = query, Message = message});
             AnsiConsole.MarkupLine($"[red][[ERROR]] {query.EscapeMarkup()}: {message}[/]");
         }
@@ -405,8 +404,7 @@ namespace N1QLQueryHarness.Commands
         private void RecordFail(string query, IReadOnlyList<IReadOnlyDictionary<string, object>> expected,
             IReadOnlyList<IReadOnlyDictionary<string, object>> actual)
         {
-            _result.FailCount++;
-            _result.Total++;
+            _result.BumpFail();
             _result.FailResults.Add(new FailResult
             {
                 Actual = actual,
@@ -423,8 +421,7 @@ namespace N1QLQueryHarness.Commands
 
         private void RecordPass(string query)
         {
-            _result.PassCount++;
-            _result.Total++;
+            _result.BumpPass();
             _result.PassResults.Add(query);
             AnsiConsole.MarkupLine("[green][[PASS]] {0}[/]", query.EscapeMarkup());
         }

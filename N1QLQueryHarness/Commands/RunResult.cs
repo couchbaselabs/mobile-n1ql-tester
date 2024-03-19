@@ -17,36 +17,47 @@
 // 
 
 using System.Collections.Generic;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace N1QLQueryHarness.Commands
 {
     internal sealed class RunResult
     {
+        private int _errorCount;
+        private int _passCount;
+        private int _failCount;
+        
         #region Properties
 
         [JsonProperty("errorCount")]
-        public int ErrorCount { get; set; }
+        public int ErrorCount => _errorCount;
 
         [JsonProperty("errorResults")]
         public IList<ErrorResult> ErrorResults { get; set; } = new List<ErrorResult>();
 
         [JsonProperty("failCount")]
-        public int FailCount { get; set; }
+        public int FailCount => _failCount;
 
         [JsonProperty("failResults")]
         public IList<FailResult> FailResults { get; set; } = new List<FailResult>();
 
         [JsonProperty("passCount")]
-        public int PassCount { get; set; }
+        public int PassCount => _passCount;
 
         [JsonProperty("passResults")]
         public IList<string> PassResults { get; set; } = new List<string>();
 
         [JsonProperty("total")]
-        public int Total { get; set; }
+        public int Total => PassCount + FailCount + ErrorCount;
 
         #endregion
+
+        public void BumpPass() => Interlocked.Increment(ref _passCount);
+
+        public void BumpFail() => Interlocked.Increment(ref _failCount);
+
+        public void BumpError() => Interlocked.Increment(ref _errorCount);
     }
 
     internal sealed class FailResult
