@@ -69,11 +69,6 @@ namespace N1QLQueryHarness.DynamicInterface
         public void* fullTextMatches;
     }
 
-    internal struct C4QueryOptions
-    {
-        private byte unused;
-    }
-
     internal unsafe struct Slice
     {
         public void* buffer;
@@ -186,11 +181,10 @@ namespace N1QLQueryHarness.DynamicInterface
 
         public void c4query_release(C4Query* query) => c4base_release(query);
 
-        public C4QueryEnumerator* c4query_run(C4Query* query, C4QueryOptions* options, Slice parameters,
-            ref C4Error err)
+        public C4QueryEnumerator* c4query_run(C4Query* query, Slice parameters, ref C4Error err)
         {
             var callable = GetSymbol<RunQueryDelegate>(nameof(c4query_run));
-            var retVal = callable((IntPtr) query, (IntPtr) options, parameters, ref err);
+            var retVal = callable((IntPtr) query, parameters, ref err);
             return (C4QueryEnumerator*) retVal;
         }
 
@@ -276,7 +270,7 @@ namespace N1QLQueryHarness.DynamicInterface
             ref C4Error err);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate IntPtr RunQueryDelegate(IntPtr query, IntPtr options, Slice parameters, ref C4Error err);
+        private delegate IntPtr RunQueryDelegate(IntPtr query, Slice parameters, ref C4Error err);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate byte QueryNextDelegate(IntPtr queryEnum, ref C4Error err);

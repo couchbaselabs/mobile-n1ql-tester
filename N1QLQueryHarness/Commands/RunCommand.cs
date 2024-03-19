@@ -275,13 +275,12 @@ namespace N1QLQueryHarness.Commands
             C4Query* c4query = null;
             C4QueryEnumerator* e = null;
             try {
-                C4QueryOptions opts = new();
                 c4query = CreateQuery(db, queryStatements);
                 if (c4query == null) {
                     return;
                 }
 
-                e = _lc!.c4query_run(c4query, &opts, new Slice(), ref err);
+                e = _lc!.c4query_run(c4query, new Slice(), ref err);
                 if (e == null) {
                     RecordError(queryStatements, err);
                     return;
