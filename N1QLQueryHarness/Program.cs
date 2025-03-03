@@ -61,7 +61,7 @@ namespace N1QLQueryHarness
                 config.SetApplicationName("N1QLQueryHarness");
                 config.SetApplicationVersion(GetVersion());
                 config.SetInterceptor(new LogInterceptor());
-                config.SetExceptionHandler(e =>
+                config.SetExceptionHandler((e, _) =>
                 {
                     AnsiConsole.WriteException(e, ExceptionFormats.ShortenEverything);
                     return -99;

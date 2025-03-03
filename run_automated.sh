@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # NOTE: Meant for internal use, so basically no error checking of the environment
-# It only needs 1 argument, a LiteCore build SHA
+# It only needs 1 argument, a LiteCore version in the format x.y.z-d
 
 script_path=$(dirname "$(readlink -f "$BASH_SOURCE")")
 pushd $script_path

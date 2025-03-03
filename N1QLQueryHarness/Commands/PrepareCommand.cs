@@ -37,21 +37,33 @@ namespace N1QLQueryHarness.Commands
 {
     internal sealed class PrepareCommandSettings : BaseCommandSettings
     {
-        [CommandArgument(0, "<SHA>")]
-        [Description("The SHA of the Git commit of LiteCore to use")]
-        public string SHA { get; set; } = "";
+        [CommandArgument(0, "<VERSION>")]
+        [Description("The version of LiteCore to use (x.y.z-d)")]
+        public string Version { get; set; } = "";
 
         public override ValidationResult Validate()
         {
-            if(SHA.Length != 40) {
-                return ValidationResult.Error("Invalid length for SHA-1 hash");
+            var firstSplit = Version.Split('-');
+            if(firstSplit.Length != 2) {
+                return ValidationResult.Error($"Invalid LiteCore version '{Version}' (invalid number of elements splitting on dash)");
             }
 
-            var valid = SHA.All(currentCharacter =>
-                (currentCharacter >= '0' && currentCharacter <= '9') ||
-                (currentCharacter >= 'a' && currentCharacter <= 'f') ||
-                (currentCharacter >= 'A' && currentCharacter <= 'F'));
-            return valid ? ValidationResult.Success() : ValidationResult.Error("Invalid characters in SHA-1 hash");
+            var secondSplit = firstSplit[0].Split('.');
+            if(secondSplit.Length != 3) {
+                return ValidationResult.Error($"Invalid LiteCore version '{Version}' (invalid number of elements splitting on dot)");
+            }
+
+            if (!Int32.TryParse(firstSplit[1], out var build)) {
+                return ValidationResult.Error($"Invalid LiteCore version '{Version}' (build is not a valid int)");
+            }
+
+            foreach(var entry in secondSplit) {
+                if(!Int32.TryParse(entry, out var tmp)) {
+                    return ValidationResult.Error($"Invalid LiteCore version '{Version}' (version is not valid x.y.z)");
+                }
+            }
+
+            return ValidationResult.Success();
         }
     }
 
@@ -75,7 +87,7 @@ namespace N1QLQueryHarness.Commands
         {
             config.AddCommand<PrepareCommand>("prepare")
                 .WithDescription("Prepare the specified version of LiteCore for use")
-                .WithExample(new[] { "prepare", "b9a487021eadcf0539f993dd4aeeba699721f580" });
+                .WithExample(new[] { "prepare", "3.2.1-12" });
         }
 
         #endregion
@@ -126,9 +138,9 @@ namespace N1QLQueryHarness.Commands
                 throw new NotSupportedException($"Unsupported OS: {RuntimeInformation.OSDescription}");
             }
 
-            var shaPrefix = _settings.SHA.Substring(0, 2);
+            var versionSplit = _settings.Version.Split('-');
             var urlStr =
-                $"http://latestbuilds.service.couchbase.com/builds/latestbuilds/couchbase-lite-core/sha/{shaPrefix}/{_settings.SHA}/couchbase-lite-core-{osForUrl}.{extension}";
+                $"http://latestbuilds.service.couchbase.com/builds/latestbuilds/couchbase-lite-core/{versionSplit[0]}/{versionSplit[1]}/couchbase-lite-core-enterprise-{versionSplit[0]}-{versionSplit[1]}-{osForUrl}.{extension}";
             Log.Information("Attempting to download {0}", urlStr);
             var outputPath = Path.Join(Path.GetTempPath(), $"litecore.{extension}");
             { 

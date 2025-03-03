@@ -19,6 +19,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Serilog;
 
 namespace N1QLQueryHarness.DynamicInterface
 {
@@ -52,7 +53,10 @@ namespace N1QLQueryHarness.DynamicInterface
         
         public IntPtr Lookup(string name)
         {
-            return Native.dlsym(_library, name);
+            Log.Debug($"Looking up symbol {name} using dlsym...");
+            var retVal = Native.dlsym(_library, name);
+            Log.Debug($"\t...found 0x{retVal:08X}");
+            return retVal;
         }
         
         public void Unload()
