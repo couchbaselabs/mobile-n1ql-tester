@@ -17,6 +17,7 @@
 // 
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Serilog;
@@ -71,18 +72,88 @@ namespace N1QLQueryHarness.DynamicInterface
 
         private static class Native
         {
-            #region Public Methods
+            private static readonly bool UseAlternate;
 
-            [DllImport("libdl")]
-            public static extern int dlclose(IntPtr handle);
+            private static bool FindFileRecursively(string directory, string targetFile)
+            {
+                foreach (var file in Directory.GetFiles(directory)) {
+                    if (Path.GetFileName(file) == targetFile) {
+                        Log.Information($"Found {targetFile} in {directory}");
+                        return true;
+                    }
+                }
 
-            [DllImport("libdl")]
-            public static extern IntPtr dlopen(string filename, int flags);
+                foreach (var subDirectory in Directory.GetDirectories(directory)) {
+                    var foundFile = FindFileRecursively(subDirectory, targetFile);
+                    if (foundFile) {
+                        return true;
+                    }
+                }
 
-            [DllImport("libdl")]
-            public static extern IntPtr dlsym(IntPtr handle, string symbol);
+                return false;
+            }
 
-            #endregion
+            static Native()
+            {
+                if(!RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                    return;
+                }
+
+                var linuxArch = "";
+                if(RuntimeInformation.ProcessArchitecture == Architecture.X64) {
+                    linuxArch = "x86_64";
+                } else if (RuntimeInformation.ProcessArchitecture == Architecture.Arm64) {
+                    linuxArch = "aarch64";
+                } else {
+                    throw new Exception("Invalid executing process architecture");
+                }
+
+                var triple = $"{linuxArch}-linux-gnu";
+                Log.Information($"Searching for libdl.so.2 in /lib/{triple}/...");
+                UseAlternate = FindFileRecursively($"/lib/{triple}", "libdl.so.2");
+            }
+
+            public static int dlclose(IntPtr handle)
+            {
+                if (UseAlternate) {
+                    return dlclose2(handle);
+                }
+                return dlclose1(handle);
+            }
+
+            public static IntPtr dlopen(string filename, int flags)
+            {
+                if (UseAlternate) {
+                    return dlopen2(filename, flags);
+                }
+                return dlopen1(filename, flags);
+            }
+
+            public static IntPtr dlsym(IntPtr handle, string symbol)
+            {
+                if (UseAlternate) {
+                    return dlsym2(handle, symbol);
+                }
+                return dlsym1(handle, symbol);
+            }
+
+            [DllImport("libdl", EntryPoint = "dlclose")]
+            private static extern int dlclose1(IntPtr handle);
+
+            [DllImport("libdl", EntryPoint = "dlopen")]
+            private static extern IntPtr dlopen1(string filename, int flags);
+
+            [DllImport("libdl", EntryPoint = "dlsym")]
+            private static extern IntPtr dlsym1(IntPtr handle, string symbol);
+
+            [DllImport("libdl.so.2", EntryPoint = "dlclose")]
+            private static extern int dlclose2(IntPtr handle);
+
+            [DllImport("libdl.so.2", EntryPoint = "dlopen")]
+            private static extern IntPtr dlopen2(string filename, int flags);
+
+            [DllImport("libdl.so.2", EntryPoint = "dlsym")]
+            private static extern IntPtr dlsym2(IntPtr handle, string symbol);
         }
 
         #endregion
